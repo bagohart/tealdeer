@@ -161,24 +161,17 @@ fn show_paths(config: &Config) {
         |e| format!("[Error: {}]", e),
         |(path, _)| path.display().to_string(),
     );
-    let cache_dir = format!(
-        "{} ({})",
-        config.directories.cache_dir.path.display(),
-        config.directories.cache_dir.source
-    );
+    let cache_dir = config.directories.cache_dir.to_string();
     let pages_dir = {
         let mut path = config.directories.cache_dir.path.clone();
         path.push(TLDR_PAGES_DIR);
         path.push(""); // Trailing path separator
         path.display().to_string()
     };
-    let custom_pages_dir = config.directories.custom_pages_dir.as_deref().map_or_else(
-        || "[None]".to_string(),
-        |path| {
-            path.to_str()
-                .map_or_else(|| "[Invalid]".to_string(), ToString::to_string)
-        },
-    );
+    let custom_pages_dir = match config.directories.custom_pages_dir {
+        None => "[None]".to_string(),
+        Some(ref path_with_source) => path_with_source.to_string(),
+    };
     println!("Config dir:       {}", config_dir);
     println!("Config path:      {}", config_path);
     println!("Cache dir:        {}", cache_dir);
@@ -381,7 +374,11 @@ fn main() {
         if let Some(lookup_result) = cache.find_page(
             &command,
             &languages,
-            config.directories.custom_pages_dir.as_deref(),
+            config
+                .directories
+                .custom_pages_dir
+                .as_ref()
+                .map(|path_with_source| path_with_source.path.as_ref()),
         ) {
             if let Err(ref e) =
                 print_page(&lookup_result, args.raw, enable_styles, args.pager, &config)
